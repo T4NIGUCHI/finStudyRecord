@@ -6,8 +6,9 @@ on:
       - main
 
 jobs:
-  build-and-deploy:
+  test:
     runs-on: ubuntu-latest
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
@@ -20,13 +21,38 @@ jobs:
     - name: Install dependencies
       run: npm install
 
-    - name: Build
+    - name: Run Jest tests
+      env:
+        VITE_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+        VITE_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+      run: npm test
+
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+
+    - name: Install dependencies
+      run: npm install
+
+    - name: Run build
+      env:
+        VITE_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+        VITE_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
       run: npm run build
 
     - name: Upload build artifact
       uses: actions/upload-artifact@v3
       with:
-        name: build
+        name: dist
         path: dist/
 
     - name: Deploy to Firebase
