@@ -1,33 +1,52 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import {
   Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody,
   ModalFooter, Button, FormControl, FormLabel, Input, FormErrorMessage
 } from '@chakra-ui/react';
-import { RecordFormValues } from '../domain/record';
-import { addRecord } from '../services/supabaseService';
+import { RecordFormValues, Record } from '../domain/record';
+import { addRecord, updateRecord } from '../services/supabaseService';
 
 interface RecordModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
+  record?: Record | null;
 }
 
-export const RecordModal: React.FC<RecordModalProps> = ({ isOpen, onClose, onSuccess }) => {
-  const { handleSubmit, control, reset, formState: { errors } } = useForm<RecordFormValues>({
+export const RecordModal: React.FC<RecordModalProps> = ({ isOpen, onClose, onSuccess, record }) => {
+  const { handleSubmit, control, reset, formState: { errors }, setValue } = useForm<RecordFormValues>({
     defaultValues: {
       title: '',
       time: ''
     }
   });
 
+  useEffect(() => {
+    if (record) {
+      // フォームに編集するデータをセット
+      setValue('title', record.title);
+      setValue('time', record.time.toString());
+    } else {
+      reset();
+    }
+  }, [record, reset, setValue]);
+
   const onSubmitHandler = async (data: RecordFormValues) => {
     try {
-      // time を string から number に変換
-      await addRecord({
-        title: data.title,
-        time: data.time
-      });
+      if (record) {
+        // 編集
+        await updateRecord(record.id, {
+          title: data.title,
+          time: data.time
+        });
+      } else {
+        // 新規登録
+        await addRecord({
+          title: data.title,
+          time: data.time
+        });
+      }
       onSuccess(); // 成功コールバック
       reset(); // フォームをリセット
       onClose(); // モーダルを閉じる
@@ -40,7 +59,7 @@ export const RecordModal: React.FC<RecordModalProps> = ({ isOpen, onClose, onSuc
     <Modal isOpen={isOpen} onClose={onClose}>
       <ModalOverlay />
       <ModalContent>
-        <ModalHeader >新規登録</ModalHeader>
+        <ModalHeader>{record ? '記録編集' : '新規登録'}</ModalHeader>
         <ModalBody>
           <form onSubmit={handleSubmit(onSubmitHandler)}>
             <FormControl isInvalid={!!errors.title}>
@@ -67,8 +86,8 @@ export const RecordModal: React.FC<RecordModalProps> = ({ isOpen, onClose, onSuc
               <FormErrorMessage>{errors.time?.message}</FormErrorMessage>
             </FormControl>
             <ModalFooter>
-              <Button colorScheme="blue" mr={3} type="submit" data-testid="Regist">
-                登録
+              <Button colorScheme="blue" mr={3} type="submit" data-testid="Save">
+                保存
               </Button>
               <Button variant="outline" onClick={onClose}>
                 キャンセル

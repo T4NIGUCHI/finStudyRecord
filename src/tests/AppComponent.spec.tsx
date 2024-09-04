@@ -1,29 +1,31 @@
-import React,{ act } from 'react';
-import {render, screen ,waitFor,fireEvent} from '@testing-library/react';
+import React, { act } from 'react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import App from '../App';
 import RecordList from '../components/RecordList';
-import { addRecord, fetchRecords,deleteRecord } from '../services/supabaseService';
+import { addRecord, fetchRecords, deleteRecord, updateRecord} from '../services/supabaseService';
 import { ChakraProvider } from '@chakra-ui/react';
 import { ReactNode } from 'react';
-import {RecordModal} from '../components/RecordModal';
+import { RecordModal } from '../components/RecordModal';
+import { Record } from '../domain/record';
 
 // fetchRecords をモック
 jest.mock('../services/supabaseService');
+
 // ChakraProvider でラップして Chakra UI コンポーネントをサポートする
 const renderWithChakra = (ui: ReactNode) => render(<ChakraProvider>{ui}</ChakraProvider>);
 const mockFetchRecords = fetchRecords as jest.MockedFunction<typeof fetchRecords>;
 
-describe('タイトルがあるか', () => {
-  it('should render the component', () => {
+describe('タイトルが表示されるか', () => {
+  it('コンポーネントが正しくレンダリングされることを確認する', () => {
     render(<App />);
     const linkElement = screen.getByText("Study Records"); // 適切なテキストを指定してください
     expect(linkElement).toBeInTheDocument();
   });
 });
 
-describe('ローディングされているか', () => {
-  it('should display loading spinner', async () => {
-    // fetchRecordsが解決しない状態をシミュレートしてローディング状態を維持
+describe('ローディング状態が表示されるか', () => {
+  it('ローディングスピナーが表示されることを確認する', async () => {
+    // fetchRecords が解決しない状態をシミュレートしてローディング状態を維持
     mockFetchRecords.mockImplementation(() => new Promise(() => {}));
 
     await act(async () => {
@@ -35,9 +37,9 @@ describe('ローディングされているか', () => {
   });
 });
 
-describe('新規登録ボタンがあるか', () => {
-  it('should work new registration button', async () => {
-    // fetchRecordsが解決する状態をシミュレート
+describe('新規登録ボタンが表示されるか', () => {
+  it('新規登録ボタンが動作することを確認する', async () => {
+    // fetchRecords が解決する状態をシミュレート
     mockFetchRecords.mockResolvedValue([]);
 
     renderWithChakra(<RecordList />);
@@ -50,14 +52,14 @@ describe('新規登録ボタンがあるか', () => {
   });
 });
 
-it('テーブルを見ることができるか', async () => {
+it('テーブルが正しく表示されるか', async () => {
   // モックデータを準備する
   const mockRecords = [
     { id: '1', title: 'Study React', time: 10 },
     { id: '2', title: 'Study TypeScript', time: 20 }
   ];
   
-  // fetchRecordsのモック実装を設定
+  // fetchRecords のモック実装を設定
   mockFetchRecords.mockResolvedValue(mockRecords);
 
   renderWithChakra(<RecordList />);
@@ -76,7 +78,7 @@ it('テーブルを見ることができるか', async () => {
   });
 });
 
-describe('ボタンが動作するか', () => {
+describe('ボタンが正しく動作するか', () => {
   let mockOnSuccess: jest.Mock;
   let mockOnClose: jest.Mock;
 
@@ -85,7 +87,7 @@ describe('ボタンが動作するか', () => {
     mockOnClose = jest.fn();
   });
 
-  it('should call onSubmitHandler correctly and perform actions on success', async () => {
+  it('onSubmitHandler が正しく呼ばれ、成功時にアクションが実行されることを確認する', async () => {
     // モックを設定
     (addRecord as jest.Mock).mockResolvedValueOnce(undefined);
 
@@ -106,7 +108,7 @@ describe('ボタンが動作するか', () => {
     });
 
     // 登録ボタンをクリック
-    fireEvent.click(screen.getByTestId('Regist'));
+    fireEvent.click(screen.getByTestId('Save'));
 
     // onSubmitHandler が正しいデータで呼ばれることを確認
     await waitFor(() => {
@@ -119,7 +121,7 @@ describe('ボタンが動作するか', () => {
     });
   });
 
-  it('エラー表示ができるか', async () => {
+  it('エラーメッセージが表示されることを確認する', async () => {
     render(
       <RecordModal
         isOpen={true}
@@ -129,7 +131,7 @@ describe('ボタンが動作するか', () => {
     );
 
     // 空のデータで送信ボタンをクリック
-    fireEvent.click(screen.getByTestId('Regist'));
+    fireEvent.click(screen.getByTestId('Save'));
 
     // エラーメッセージが表示されることを確認
     await waitFor(() => {
@@ -140,7 +142,7 @@ describe('ボタンが動作するか', () => {
 });
 
 describe('モーダルのタイトルが「新規登録」であるか', () => {
-  it('should display the correct title in the modal', () => {
+  it('モーダルのタイトルが「新規登録」であることを確認する', () => {
     render(
       <RecordModal
         isOpen={true}
@@ -155,7 +157,7 @@ describe('モーダルのタイトルが「新規登録」であるか', () => {
 });
 
 describe('マイナス数値の入力でエラーが出るか', () => {
-  it('should show error message when a negative number is entered for time', async () => {
+  it('学習時間にマイナスの数値を入力したときにエラーメッセージが表示されることを確認する', async () => {
     render(
       <RecordModal
         isOpen={true}
@@ -175,7 +177,7 @@ describe('マイナス数値の入力でエラーが出るか', () => {
     });
 
     // フォームを送信
-    fireEvent.click(screen.getByTestId('Regist'));
+    fireEvent.click(screen.getByTestId('Save'));
 
     // エラーメッセージが表示されるのを待つ
     await waitFor(() => {
@@ -184,7 +186,7 @@ describe('マイナス数値の入力でエラーが出るか', () => {
   });
 });
 
-describe('RecordList', () => {
+describe('RecordList コンポーネント', () => {
   beforeEach(() => {
     // 初期状態としてレコードのモックデータを設定
     (fetchRecords as jest.Mock).mockResolvedValue([
@@ -194,7 +196,7 @@ describe('RecordList', () => {
     (deleteRecord as jest.Mock).mockResolvedValue({});
   });
 
-  it('should call deleteRecord and remove the item from the list', async () => {
+  it('削除ボタンが動作し、リストからアイテムが削除されることを確認する', async () => {
     render(<RecordList />);
 
     // ローディングが終了するまで待つ
@@ -215,9 +217,9 @@ describe('RecordList', () => {
     });
   });
 
-  it('should handle deletion error correctly', async () => {
+  it('削除処理でエラーが発生する場合の動作を確認する', async () => {
     // deleteRecord のモックをエラーを返すように設定
-    (deleteRecord as jest.Mock).mockRejectedValue(new Error('Deletion failed'));
+    (deleteRecord as jest.Mock).mockRejectedValue(new Error('削除に失敗しました'));
 
     render(<RecordList />);
 
@@ -228,9 +230,72 @@ describe('RecordList', () => {
     const deleteButtons = screen.getAllByTestId('Delete');
     fireEvent.click(deleteButtons[0]);
 
-    // エラーメッセージが表示されるか確認
+    // エラーメッセージが表示されるのを待つ
     await waitFor(() => {
-      expect(screen.getByText('Deletion failed')).toBeInTheDocument();
+      expect(screen.getByText('削除に失敗しました')).toBeInTheDocument();
+    });
+  });
+});
+
+describe('モーダルのタイトルが「記録編集」であるか', () => {
+  it('should display the modal title as "記録編集" when editing', () => {
+    const mockRecord = new Record('1', 'Existing Title', 60); // 編集対象のレコードを渡す
+
+    render(
+      <RecordModal
+        isOpen={true}
+        onClose={() => {}}
+        onSuccess={() => {}}
+        record={mockRecord} // 編集対象のレコードを渡す
+      />
+    );
+
+    // モーダルのタイトルが「記録編集」であることを確認
+    expect(screen.getByText('記録編集')).toBeInTheDocument();
+  });
+});
+
+describe('レコードの編集と更新', () => {
+  let mockOnSuccess: jest.Mock;
+  let mockOnClose: jest.Mock;
+
+  beforeEach(() => {
+    mockOnSuccess = jest.fn();
+    mockOnClose = jest.fn();
+  });
+
+  it('should update the record when editing and saving', async () => {
+    const mockRecord = new Record('1', 'Existing Title', 60); // 編集対象のレコードを渡す
+    (updateRecord as jest.Mock).mockResolvedValueOnce(undefined);
+
+    render(
+      <RecordModal
+        isOpen={true}
+        onClose={mockOnClose}
+        onSuccess={mockOnSuccess}
+        record={mockRecord} // 編集対象のレコードを渡す
+      />
+    );
+
+    // フォームの値を変更
+    fireEvent.change(screen.getByLabelText(/学習記録/i), {
+      target: { value: 'Updated Title' }
+    });
+    fireEvent.change(screen.getByLabelText(/学習時間 \(分\)/i), {
+      target: { value: '90' }
+    });
+
+    // 保存ボタンをクリック
+    fireEvent.click(screen.getByTestId('Save'));
+
+    // updateRecord が正しいデータで呼ばれることを確認
+    await waitFor(() => {
+      expect(updateRecord).toHaveBeenCalledWith(mockRecord.id, {
+        title: 'Updated Title',
+        time: '90'
+      });
+      expect(mockOnSuccess).toHaveBeenCalled();
+      expect(mockOnClose).toHaveBeenCalled();
     });
   });
 });

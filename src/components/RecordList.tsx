@@ -9,6 +9,7 @@ const RecordList: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
+  const [selectedRecord, setSelectedRecord] = useState<Record | null>(null);
 
   useEffect(() => {
     const loadRecords = async () => {
@@ -34,8 +35,16 @@ const RecordList: React.FC = () => {
     }
   };
 
-  const handleModalOpen = () => setIsModalOpen(true);
-  const handleModalClose = () => setIsModalOpen(false);
+  const handleModalOpen = (record: Record | null = null) => {
+    setSelectedRecord(record);
+    setIsModalOpen(true);
+  };
+
+  const handleModalClose = () => {
+    setIsModalOpen(false);
+    setSelectedRecord(null);
+  };
+
   const handleModalSuccess = () => {
     // モーダルからの成功コールバック
     fetchRecords().then(setRecords);
@@ -55,7 +64,7 @@ const RecordList: React.FC = () => {
 
   return (
     <Box>
-      <Button onClick={handleModalOpen} mb={4} data-testid ="newRegister">
+      <Button onClick={() => handleModalOpen()} mb={4} data-testid="newRegister">
         新規登録
       </Button>
       <TableContainer>
@@ -75,7 +84,10 @@ const RecordList: React.FC = () => {
                 <Td>{record.title}</Td>
                 <Td>{record.time}</Td>
                 <Td>
-                  <Button colorScheme="red" onClick={() => handleDelete(record.id)} data-testid="Delete">
+                  <Button colorScheme="blue" onClick={() => handleModalOpen(record)} data-testid="Edit">
+                    編集
+                  </Button>
+                  <Button colorScheme="red" onClick={() => handleDelete(record.id)} data-testid="Delete" ml={2}>
                     削除
                   </Button>
                 </Td>
@@ -84,7 +96,12 @@ const RecordList: React.FC = () => {
           </Tbody>
         </Table>
       </TableContainer>
-      <RecordModal isOpen={isModalOpen} onClose={handleModalClose} onSuccess={handleModalSuccess} />
+      <RecordModal
+        isOpen={isModalOpen}
+        onClose={handleModalClose}
+        onSuccess={handleModalSuccess}
+        record={selectedRecord}  // 編集する記録をモーダルに渡す
+      />
     </Box>
   );
 };

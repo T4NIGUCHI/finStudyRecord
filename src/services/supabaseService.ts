@@ -35,3 +35,18 @@ export const deleteRecord = async (id: string): Promise<void> => {
 
   if (error) throw error;
 };
+
+export const updateRecord = async (id: string, recordFormValues: { title: string; time: string }) => {
+  const updatedRecord = {
+    title: recordFormValues.title,
+    time: parseFloat(recordFormValues.time) // time を number に変換
+  };
+
+  const { data, error } = await supabase
+    .from('study-record')
+    .update(updatedRecord)
+    .eq('id', id);
+
+  if (error) throw error;
+  return data;
+};
